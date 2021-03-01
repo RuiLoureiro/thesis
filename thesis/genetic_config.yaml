@@ -1,0 +1,7 @@
+pop_size: 64
+elite_size: 16
+tournament_size: 40
+#pswap: 0.1
+pms: 0.3
+pdelete: 0.6
+min_route_size: 1
