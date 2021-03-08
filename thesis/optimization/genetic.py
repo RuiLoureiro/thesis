@@ -110,8 +110,6 @@ class Metrics:
         }
 
 
-
-
 class Algorithm:
     """
     Class responsible for running the optimization process
@@ -345,13 +343,13 @@ class Algorithm:
             results.append(row)
             last_time = time.time()
 
-            print_freq = 20
+            print_freq = 2
             save_freq = 20
             if i % print_freq == 0:
                 if i > 0:
                     print(f"[bold]Iteration {i}")
                     print(
-                        f"Decrease in fitness: {self.get_fitness_decrease(results[-(print_freq+1)]['fitness'], row['fitness'])}%"
+                        f"Decrease in fitness: {metrics.get_fitness_decrease(results[-(print_freq+1)]['fitness'], row['fitness'])}%"
                     )
                     self.print_row(row)
 
@@ -367,7 +365,6 @@ class Algorithm:
             pd.DataFrame(results).to_csv(f"{result_dir}/df.csv", index=False)
             self.serialize_population(self.P, f"{result_dir}/saved_population")
 
-    
     @staticmethod
     def serialize_population(P, dir_):
         for pidx, p in enumerate(P):
