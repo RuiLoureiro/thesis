@@ -17,12 +17,17 @@ class ODX_ENUMS:
 
 
 class BusStage:
+    """
+    Represents a bus stage
+    """
+
     mode = "bus"
 
     def __init__(
         self,
         boarding,
     ):
+
         self.boarding = boarding
         self.entry_ts = boarding.timestamp
         self.entry_stop = BusSchedule().get_stop(boarding.stop_id)
@@ -32,6 +37,10 @@ class BusStage:
 
     @staticmethod
     def route_from_transaction(transaction):
+        """
+        Extract bus route from an AFC transaction
+        """
+
         route_tup = BusRouteTuple(
             transaction.route_id,
             transaction.route_direction,
@@ -44,6 +53,10 @@ class BusStage:
 
 
 class MetroStage:
+    """
+    Represents a metro stage
+    """
+
     mode = "metro"
 
     def __init__(
@@ -247,8 +260,6 @@ class ODX:
                         continue
 
                     stage.exit_stop = closest_stop
-                    stage.exit_ts = stage.entry_ts + self.get_stage_time(
-                        stage
-                    )
+                    stage.exit_ts = stage.entry_ts + self.get_stage_time(stage)
 
         return stages

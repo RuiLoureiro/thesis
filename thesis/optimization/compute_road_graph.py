@@ -13,11 +13,11 @@ from .road_graph import RoadGraph
 from ..base.bus_schedule import BusSchedule
 
 
-def get_odx_stops(odx_path=config.BUS_ODX_MATRIX_PATH):
+def _get_odx_stops(odx_path=config.BUS_ODX_MATRIX_PATH):
     """
     Returns list of stops that are part of the OD matrix
     """
-    with open(odx_path, 'r') as file:
+    with open(odx_path, "r") as file:
         odx_og = json.load(file)
     odx = {}
 
@@ -32,7 +32,7 @@ def get_odx_stops(odx_path=config.BUS_ODX_MATRIX_PATH):
     return stops_in_odx
 
 
-def get_stop_to_stops_table_url(origin_stop, destination_stops):
+def _get_stop_to_stops_table_url(origin_stop, destination_stops):
     """Generates URLs for OSRM's table service, using the `street_point` of
     `origin_stop` and `destination_stops` as the origin and destinations,
     respectively.
@@ -77,7 +77,7 @@ def get_stop_to_stops_table_url(origin_stop, destination_stops):
     )
 
 
-def compute_stops_neighbors(stops, dist):
+def _compute_stops_neighbors(stops, dist):
     """For every stop in `stops`, compute the stops in `stops`
     that are within a radius of `dist`.
     Parameters
@@ -130,7 +130,7 @@ def compute_stops_neighbors(stops, dist):
 
 
 @need_osrm_up
-def compute_distances_durations(stops, dist):
+def _compute_distances_durations(stops, dist):
     """Computes the distances and durations of the shortest path between every stop in `stops`
     and its neighbor stops, i.e, the stops that are within a radius of `dist`.
 
@@ -150,7 +150,7 @@ def compute_distances_durations(stops, dist):
         and destination stops as the inner dictionary value.
     """
     logger.info("Computing stop neighbors..")
-    neighbors = compute_stops_neighbors(stops, dist)
+    neighbors = _compute_stops_neighbors(stops, dist)
     urls = {}
 
     sched = BusSchedule()
@@ -165,7 +165,7 @@ def compute_distances_durations(stops, dist):
             continue
 
         # dict keys must be str
-        urls[str(stop_id)] = get_stop_to_stops_table_url(
+        urls[str(stop_id)] = _get_stop_to_stops_table_url(
             sched.get_stop(stop_id),
             [sched.get_stop(ns) for ns in neighbors[stop_id]],
         )
@@ -184,7 +184,12 @@ def compute_distances_durations(stops, dist):
         # OSRM supports n origins, returning a 2d array.
         # since we have a single origin,
         # we extract the first (and only) row from the array
-        for idx, (dist_, durat_) in enumerate(zip(tables[from_stop]["distances"][0], tables[from_stop]["durations"][0])):
+        for idx, (dist_, durat_) in enumerate(
+            zip(
+                tables[from_stop]["distances"][0],
+                tables[from_stop]["durations"][0],
+            )
+        ):
             to_stop = neighbors[from_stop][idx]
 
             distances[from_stop][to_stop] = dist_
@@ -193,26 +198,26 @@ def compute_distances_durations(stops, dist):
     return distances, durations
 
 
-def same_dist(dist1, dist2, thresh=1e-1):
+def _same_dist(dist1, dist2, thresh=1e-1):
     """
     True if the dists absolute difference is less than `thresh`
     """
     return round(abs(dist1 - dist2), 1) <= thresh
 
 
-def build_graph(
+def _build_graph(
     stops,
-    dist=1000, # meters
+    dist=1000,  # meters
     durations=config.BUS_STOP_DURATIONS_PATH,
     distances=config.BUS_STOP_DISTANCES_PATH,
 ):
 
     if isinstance(durations, str):
-        with open(durations, 'r') as f:
+        with open(durations, "r") as f:
             durations = nested_dict_to_int(json.load(f))
 
     if isinstance(distances, str):
-        with open(distances, 'r') as f:
+        with open(distances, "r") as f:
             distances = nested_dict_to_int(json.load(f))
 
     G = RoadGraph()
@@ -222,11 +227,15 @@ def build_graph(
         if np.isnan(
             np.array(list(durations[sid].values())).astype(float)
         ).all():
-            logger.error(f"Stop {sid} has no paths to any other stop, ignoring stop..")
+            logger.error(
+                f"Stop {sid} has no paths to any other stop, ignoring stop.."
+            )
             continue
 
         if (np.array(list(durations[sid].values())) == 0).all():
-            logger.error(f"Stop {sid} has every path with durtation 0 ignoring stop..")
+            logger.error(
+                f"Stop {sid} has every path with durtation 0 ignoring stop.."
+            )
             continue
 
         d = sorted(list(durations[sid].items()), key=lambda t: t[1])
@@ -256,7 +265,7 @@ def build_graph(
 
                 # if the dist of sid->candidate is the same
                 # as sid->m + m->candidate
-                if same_dist(duration, vv + dd):
+                if _same_dist(duration, vv + dd):
                     break
 
             # if no valid middle stop has been found, add edge sid->candidate
@@ -265,7 +274,7 @@ def build_graph(
                     sid,
                     candidate,
                     duration=duration,
-                    distance=distances[sid][candidate]
+                    distance=distances[sid][candidate],
                 )
 
     return G
@@ -276,34 +285,40 @@ def compute_road_graph(
     durations_path=config.BUS_STOP_DURATIONS_PATH,
     road_graph_path=config.BUS_ROAD_GRAPH_PATH,
 ):
-    stops_in_odx = get_odx_stops()
+    """
+    Computes the road graph
+    """
+    stops_in_odx = _get_odx_stops()
     stops = [BusSchedule().get_stop(sid) for sid in stops_in_odx]
 
     distances = durations = None
 
-    print(f"Loading distances from {distances_path} and durations from {durations_path}")
+    print(
+        f"Loading distances from {distances_path} and durations from {durations_path}"
+    )
     try:
-        with open(distances_path, 'r') as f:
+        with open(distances_path, "r") as f:
             distances = json.load(f)
-        with open(durations_path, 'r') as f:
+        with open(durations_path, "r") as f:
             durations = json.load(f)
     except Exception as e:
         print(f"[red]Error loading distances and durations: {e}")
 
     if (distances is None) or (durations is None):
         print("Computing stop distances and durations..")
-        distances, durations = compute_distances_durations(stops, 6000)
+        distances, durations = _compute_distances_durations(stops, 6000)
 
-        print(f"Saving distances to {distances_path} and durations to {durations_path}")
+        print(
+            f"Saving distances to {distances_path} and durations to {durations_path}"
+        )
         # save distances and durations
-        with open(distances_path, 'w') as f:
+        with open(distances_path, "w") as f:
             json.dump(distances, f)
-        with open(durations_path, 'w') as f:
+        with open(durations_path, "w") as f:
             json.dump(durations, f)
-    
 
     print(f"Computing road graph..")
-    road_graph = build_graph(dist=3000, stops=stops_in_odx)
+    road_graph = _build_graph(dist=3000, stops=stops_in_odx)
 
     print(f"Saving road graph to {road_graph_path}..")
     road_graph.save(road_graph_path)
