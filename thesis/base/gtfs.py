@@ -11,6 +11,9 @@ class RawGTFSReaderMeta(type):
 
 
 class RawGTFSReader(metaclass=RawGTFSReaderMeta):
+    """
+    Reads each GTFS file in a feed into a pandas DataFrame 
+    """
     def __init__(self, gtfs_path):
         self.path = Path(gtfs_path)
 
@@ -24,9 +27,18 @@ class RawGTFSReader(metaclass=RawGTFSReaderMeta):
         return val
 
     def file_to_df(self, attr):
+        """
+        Reads a gtfs file into a pandas Dataframe
+
+        Parameters
+        ----------
+        attr: str
+            Name of the gtfs file (without the extension)
+
+        """
         file_ = self.path / f"{attr}.txt"
 
         if not file_.exists():
-            raise RuntimeError(f"No such file {attr}")
+            raise RuntimeError(f"No such file '{attr}'")
 
         return pd.read_csv(file_, parse_dates=True)

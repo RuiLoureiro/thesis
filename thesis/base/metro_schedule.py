@@ -1,4 +1,4 @@
-from .common import Stop
+from .stop import Stop
 from . import config
 from .gtfs import RawGTFSReader
 from .utils import Singleton

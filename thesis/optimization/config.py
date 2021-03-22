@@ -5,7 +5,6 @@ home = str(Path.home())
 REPO_ROOT_DIR = Path(__file__).resolve().parent.parent
 
 PARAMETERS_CONFIG_PATH = f"{REPO_ROOT_DIR}/genetic_config.yaml"
-print(REPO_ROOT_DIR)
 BASE_OSRM_URL = "http://localhost:5000"  # "https://router.project-osrm.org/"
 
 BUS_STOP_DURATIONS_PATH = f"{PROCESSED_DATA_PATH}/bus_durations.json"

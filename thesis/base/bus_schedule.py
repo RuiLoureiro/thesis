@@ -2,55 +2,73 @@ import json
 from collections import namedtuple
 from loguru import logger
 from .utils import Singleton
-from .common import Stop
+from .stop import Stop
 from .geo import StopsDistance
 from . import config
 
+
+# Represents a bus route
 BusRouteTuple = namedtuple(
     "BusRouteTuple", ["route_id", "route_direction", "route_variant"]
 )
 
 
 def convert_gtfs_bus_stop_id(gtfs_stop_id):
+    """
+    Converts carris afc stop_id (X) into carris gtfs stop_id (1_X)
+    """
     return int(gtfs_stop_id.split("_")[1])
 
 
 class BusRoute:
+    """
+    Represents a bus route
+    A bus route is uniquely defined by it's route_id, route_direction and route_variant
+
+    Attributes
+    ----------
+    route_id: str
+        Route identifier
+    route_direction: [Directions.ASC, Directions.DESC, Directions.CIRC]
+        Route direction
+    route_variant: int
+        Route variant
+    """
     class Directions:
+        """
+        Possible bus route directions
+        """
         ASC = "ASC"
         DESC = "DESC"
         CIRC = "CIRC"
         UNDEFINED = ""
 
     def __init__(
-        self, route_id, route_direction, route_variant, route_stop_ids=None
+        self, route_id: str, route_direction: Directions, route_variant: int, route_stops: list = []
     ):
         assert isinstance(route_variant, int)
         self.route_id = route_id
         self.route_direction = route_direction
         self.route_variant = route_variant
-        self.route_stop_ids = route_stop_ids
+        self.route_stops = route_stops
         self.stage_times = None
         self.stage_dists = None
 
         self._sid_to_idx = {
-            sid: idx for idx, sid in enumerate(self.route_stop_ids)
+            sid: idx for idx, sid in enumerate(self.stops)
         }
 
-        if self.route_direction == self.Directions.CIRC:
+        if self.direction == self.Directions.CIRC:
             self._sid_to_idx = {
-                sid: idx for idx, sid in enumerate(self.route_stop_ids[:-1])
+                sid: idx for idx, sid in enumerate(self.stops[:-1])
             }
         else:
             self._sid_to_idx = {
-                sid: idx for idx, sid in enumerate(self.route_stop_ids)
+                sid: idx for idx, sid in enumerate(self.stops)
             }
 
-    def has_stop(self, stop_id):
+    def has_stop(self, stop_id: int):
         return stop_id in self._sid_to_idx
-
-    def add_route_stops(self, route_stops):
-        self.route_stops = route_stops
 
     def set_stage_times(self, stage_times):
         self.stage_times = stage_times
@@ -58,30 +76,34 @@ class BusRoute:
     def set_stage_dists(self, dists):
         self.stage_dists = dists
 
-    def get_subsequent_stop_ids(self, entry_stop_id):
+    def get_subsequent_stop_ids(self, entry_stop_id: int):
+        """
+        Returns an ordered list of stops (ids) that come after 'entry_stop_id' in the route.
+        If the route is circular, it includes every route stop except `entry_stop_id`.
+        """
 
         try:
             idx = self._sid_to_idx[entry_stop_id]
         except KeyError:
             raise RuntimeError(f"stop_id `{entry_stop_id} not in route {self}")
 
-        if self.route_direction == "CIRC":
+        if self.direction == Direction.CIRC:
             # circ routes have the first stop_id twice, in indices 0 and -1
             if idx == 0:
-                return self.route_stop_ids[1:-1]
+                return self.stops[1:-1]
             else:
                 return (
-                    self.route_stop_ids[idx + 1 :] + self.route_stop_ids[:idx]
+                    self.stops[idx + 1 :] + self.stops[:idx]
                 )
         else:
-            return self.route_stop_ids[idx + 1 :]
+            return self.stops[idx + 1 :]
 
-    def get_stage_dist(self, entry_sid, exit_sid):
+    def get_stage_dist(self, entry_sid: int, exit_sid: int):
         entry_idx = self._sid_to_idx[entry_sid]
         exit_idx = self._sid_to_idx[exit_sid]
 
         if entry_idx > exit_idx:
-            if self.route_direction != self.Directions.CIRC:
+            if self.direction != self.Directions.CIRC:
                 raise RuntimeError()
 
             if exit_idx == 0:
@@ -105,12 +127,12 @@ class BusRoute:
 
         return stage_dist
 
-    def get_stage_time(self, entry_sid, exit_sid):
+    def get_stage_time(self, entry_sid: int, exit_sid: int):
         entry_idx = self._sid_to_idx[entry_sid]
         exit_idx = self._sid_to_idx[exit_sid]
 
         if entry_idx > exit_idx:
-            if self.route_direction != self.Directions.CIRC:
+            if self.direction != self.Directions.CIRC:
                 raise RuntimeError()
 
             if exit_idx == 0:
@@ -153,21 +175,36 @@ class BusRoute:
         if isinstance(other, BusRoute):
             return (
                 (self.route_id == other.route_id)
-                and (self.route_direction == other.route_direction)
-                and (self.route_variant == other.route_variant)
+                and (self.direction == other.route_direction)
+                and (self.variant == other.route_variant)
             )
         return False
 
     def __repr__(self):
-        s = f"{self.route_id} {self.route_direction} [{self.route_variant}]"
-        if self.route_stop_ids:
-            s += f" ({self.route_stop_ids[0]}->{self.route_stop_ids[-1]})"
+        s = f"{self.route_id} {self.direction} [{self.variant}]"
+        if self.stops:
+            s += f" ({self.stops[0]}->{self.stops[-1]})"
         return s
 
 
 class BusStop(Stop):
+    """
+    Represents a bus stop
+
+    Attributes
+    ----------
+    stop_id: str
+        Unique stop identifier
+    stop_name: str
+        Stop name (non-unique)
+    stop_lat: float
+        Stop latitude, given by the operator
+    stop_lon: float
+        Stop longitude, given by the operator
+    street_point: dict
+    """
     def __init__(
-        self, stop_id, stop_name, stop_lat, stop_lon, street_point=None
+        self, stop_id: int, stop_name: str, stop_lat: float, stop_lon: float, street_point=None: dict
     ):
         super().__init__(stop_id, stop_name, stop_lat, stop_lon)
         self.street_point = street_point
@@ -206,7 +243,6 @@ class BusSchedule(metaclass=Singleton):
         self,
         stops_path=config.BUS_STOPS_PATH,
         routes_path=config.BUS_ROUTES_PATH,
-        # stage_times_osrm_path=config.BUS_STAGE_TIMES_OSRM_PATH,
         stage_times_gtfs_path=config.BUS_STAGE_TIMES_GTFS_PATH,
     ):
 
@@ -280,11 +316,14 @@ class BusSchedule(metaclass=Singleton):
             r.set_stage_times(route_stage_times)
             r.set_stage_dists(route_dists)
 
-    def get_distance(self, sid1, sid2):
+    def get_distance(self, sid1: int, sid2: int):
+        """
+        Returns the distance 
+        """
         return self.stop_distances.get_distance(sid1, sid2)
 
     def get_route_by_id(self, rid):
-        # ATTENTION: very slow!! to be used for debugging purposes!
+        logger.warning("ATTENTION: very slow function!! use for debugging purposes only!!")
         routes = []
         for r in self.routes:
             if r.route_id == rid:

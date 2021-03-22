@@ -1,11 +1,12 @@
 import numpy as np
 
 
+# planet earth radius, in meters
 EARTH_RADIUS_M = 6371000
 
 
 def _broadcasting_based_haversine(data1, data2):
-    """Computes the haversine distance between every point in `data1`
+    """Computes the haversine distance (in meters) between every point in `data1`
     and every point in `data2`.
     Uses numpy broadcasting for very speed
 
@@ -19,6 +20,11 @@ def _broadcasting_based_haversine(data1, data2):
     data2: np.array
         Array with 2 columns (holding lat,lon values) and
         arbitrary number of rows (equal to data1)
+    
+    Returns
+    -------
+    np.array:
+        distances in meters
     """
     assert data1.shape[1] == 2
     assert data1.shape == data2.shape
@@ -45,6 +51,9 @@ def _broadcasting_based_haversine(data1, data2):
 
 
 class StopsDistance:
+    """
+    Class responsible for keeping haversine distances between stops
+    """
     def __init__(self, stops: list):
         _stops_distance = {}
 
@@ -61,5 +70,8 @@ class StopsDistance:
 
         self._stops_distance = _stops_distance
 
-    def get_distance(self, sid1, sid2):
+    def get_distance(self, sid1: int, sid2: int):
+        """
+        Returns haversine distance, in meters, between `sid1` and `sid2`
+        """
         return self._stops_distance[sid1][sid2]

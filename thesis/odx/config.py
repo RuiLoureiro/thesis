@@ -5,8 +5,6 @@ from ..base.config import PROCESSED_DATA_PATH
 home = str(Path.home())
 
 
-
-
 # GTFS
 METRO_GTFS_PATH = f"{RAW_DATA_PATH}/gtfs_metro_10_2019"
 CARRIS_GTFS_PATH = f"{RAW_DATA_PATH}/gtfs_carris_02_2020"
