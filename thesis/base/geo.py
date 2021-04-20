@@ -20,7 +20,7 @@ def _broadcasting_based_haversine(data1, data2):
     data2: np.array
         Array with 2 columns (holding lat,lon values) and
         arbitrary number of rows (equal to data1)
-    
+
     Returns
     -------
     np.array:
@@ -54,6 +54,7 @@ class StopsDistance:
     """
     Class responsible for keeping haversine distances between stops
     """
+
     def __init__(self, stops: list):
         _stops_distance = {}
 

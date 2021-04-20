@@ -26,6 +26,7 @@ def _need_osrm_up(func):
     Decorator that raises an exception if the osrm url is not reachable
     To be applied to methods that rely on osrm
     """
+
     def wrapper(*args, **kwargs):
         if is_osrm_up():
             return func(*args, **kwargs)
@@ -101,8 +102,12 @@ def get_table_url(
     """
     # coord arguments must come in lat, lon!!
 
-    assert len(origin_coords) == len(origin_bearings), "len of `origin_coords` is different from len of `origin_bearings`"
-    assert len(destination_coords) == len(destination_bearings), "len of `destination_coords` is different from len of `destination_bearings`"
+    assert len(origin_coords) == len(
+        origin_bearings
+    ), "len of `origin_coords` is different from len of `origin_bearings`"
+    assert len(destination_coords) == len(
+        destination_bearings
+    ), "len of `destination_coords` is different from len of `destination_bearings`"
 
     coords_str = _coords_to_str(origin_coords + destination_coords)
 
@@ -127,7 +132,10 @@ def get_table_url(
 
 @_need_osrm_up
 def get_route(
-    origin_coords: tuple, destination_coords: tuple, origin_bearing: float, destination_bearing: float
+    origin_coords: tuple,
+    destination_coords: tuple,
+    origin_bearing: float,
+    destination_bearing: float,
 ):
     """
     Computes shortest route (coordinates, distance and duration) between

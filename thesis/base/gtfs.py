@@ -12,8 +12,9 @@ class RawGTFSReaderMeta(type):
 
 class RawGTFSReader(metaclass=RawGTFSReaderMeta):
     """
-    Reads each GTFS file in a feed into a pandas DataFrame 
+    Reads each GTFS file in a feed into a pandas DataFrame
     """
+
     def __init__(self, gtfs_path):
         self.path = Path(gtfs_path)
 

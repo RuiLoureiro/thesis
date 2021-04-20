@@ -23,7 +23,8 @@ def convert_gtfs_bus_stop_id(gtfs_stop_id):
 class BusRoute:
     """
     Represents a bus route
-    A bus route is uniquely defined by it's route_id, route_direction and route_variant
+    A bus route is uniquely defined by it's route_id, route_direction and
+    route_variant
 
     Attributes
     ----------
@@ -34,17 +35,23 @@ class BusRoute:
     route_variant: int
         Route variant
     """
+
     class Directions:
         """
         Possible bus route directions
         """
+
         ASC = "ASC"
         DESC = "DESC"
         CIRC = "CIRC"
         UNDEFINED = ""
 
     def __init__(
-        self, route_id: str, route_direction: Directions, route_variant: int, route_stops: list = []
+        self,
+        route_id: str,
+        route_direction: Directions,
+        route_variant: int,
+        route_stops: list = [],
     ):
         assert isinstance(route_variant, int)
         self.route_id = route_id
@@ -55,16 +62,16 @@ class BusRoute:
         self.stage_dists = None
 
         self._sid_to_idx = {
-            sid: idx for idx, sid in enumerate(self.stops)
+            sid: idx for idx, sid in enumerate(self.route_stops)
         }
 
-        if self.direction == self.Directions.CIRC:
+        if self.route_direction == self.Directions.CIRC:
             self._sid_to_idx = {
-                sid: idx for idx, sid in enumerate(self.stops[:-1])
+                sid: idx for idx, sid in enumerate(self.route_stops[:-1])
             }
         else:
             self._sid_to_idx = {
-                sid: idx for idx, sid in enumerate(self.stops)
+                sid: idx for idx, sid in enumerate(self.route_stops)
             }
 
     def has_stop(self, stop_id: int):
@@ -78,8 +85,10 @@ class BusRoute:
 
     def get_subsequent_stop_ids(self, entry_stop_id: int):
         """
-        Returns an ordered list of stops (ids) that come after 'entry_stop_id' in the route.
-        If the route is circular, it includes every route stop except `entry_stop_id`.
+        Returns an ordered list of stops (ids) that come after 'entry_stop_id'
+        in the route.
+        If the route is circular, it includes every route stop except
+        `entry_stop_id`.
         """
 
         try:
@@ -87,23 +96,21 @@ class BusRoute:
         except KeyError:
             raise RuntimeError(f"stop_id `{entry_stop_id} not in route {self}")
 
-        if self.direction == Direction.CIRC:
+        if self.route_direction == self.Directions.CIRC:
             # circ routes have the first stop_id twice, in indices 0 and -1
             if idx == 0:
-                return self.stops[1:-1]
+                return self.route_stops[1:-1]
             else:
-                return (
-                    self.stops[idx + 1 :] + self.stops[:idx]
-                )
+                return self.route_stops[idx + 1:] + self.route_stops[:idx]
         else:
-            return self.stops[idx + 1 :]
+            return self.route_stops[idx + 1:]
 
     def get_stage_dist(self, entry_sid: int, exit_sid: int):
         entry_idx = self._sid_to_idx[entry_sid]
         exit_idx = self._sid_to_idx[exit_sid]
 
         if entry_idx > exit_idx:
-            if self.direction != self.Directions.CIRC:
+            if self.route_direction != self.Directions.CIRC:
                 raise RuntimeError()
 
             if exit_idx == 0:
@@ -132,7 +139,7 @@ class BusRoute:
         exit_idx = self._sid_to_idx[exit_sid]
 
         if entry_idx > exit_idx:
-            if self.direction != self.Directions.CIRC:
+            if self.route_direction != self.Directions.CIRC:
                 raise RuntimeError()
 
             if exit_idx == 0:
@@ -175,15 +182,15 @@ class BusRoute:
         if isinstance(other, BusRoute):
             return (
                 (self.route_id == other.route_id)
-                and (self.direction == other.route_direction)
-                and (self.variant == other.route_variant)
+                and (self.route_direction == other.route_direction)
+                and (self.route_variant == other.route_variant)
             )
         return False
 
     def __repr__(self):
-        s = f"{self.route_id} {self.direction} [{self.variant}]"
-        if self.stops:
-            s += f" ({self.stops[0]}->{self.stops[-1]})"
+        s = f"{self.route_id} {self.route_direction} [{self.route_variant}]"
+        if self.route_stops:
+            s += f" ({self.route_stops[0]}->{self.route_stops[-1]})"
         return s
 
 
@@ -203,8 +210,14 @@ class BusStop(Stop):
         Stop longitude, given by the operator
     street_point: dict
     """
+
     def __init__(
-        self, stop_id: int, stop_name: str, stop_lat: float, stop_lon: float, street_point=None: dict
+        self,
+        stop_id: int,
+        stop_name: str,
+        stop_lat: float,
+        stop_lon: float,
+        street_point=None,
     ):
         super().__init__(stop_id, stop_name, stop_lat, stop_lon)
         self.street_point = street_point
@@ -293,10 +306,10 @@ class BusSchedule(metaclass=Singleton):
             route_dist_acc = 0
             stage_time_acc = 0
 
-            for idx, sid in enumerate(r.route_stop_ids):
+            for idx, sid in enumerate(r.route_stops):
                 from_sid = sid
                 try:
-                    to_sid = r.route_stop_ids[idx + 1]
+                    to_sid = r.route_stops[idx + 1]
                 except IndexError:
                     break
 
@@ -318,12 +331,14 @@ class BusSchedule(metaclass=Singleton):
 
     def get_distance(self, sid1: int, sid2: int):
         """
-        Returns the distance 
+        Returns the distance
         """
         return self.stop_distances.get_distance(sid1, sid2)
 
     def get_route_by_id(self, rid):
-        logger.warning("ATTENTION: very slow function!! use for debugging purposes only!!")
+        logger.warning(
+            "ATTENTION: very slow function!! use for debugging purposes only!!"
+        )
         routes = []
         for r in self.routes:
             if r.route_id == rid:
@@ -389,9 +404,12 @@ class BusSchedule(metaclass=Singleton):
             self._rid_to_idx[
                 (route.route_id, route.route_direction, route.route_variant)
             ]
-        ].route_stop_ids
+        ].route_stops
 
     def __repr__(self):
-        msg = f"Bus Schedule with {len(self.routes)} routes and {len(self.stops)} stops"
+        msg = (
+            f"Bus Schedule with {len(self.routes)} routes and"
+            f" {len(self.stops)} stops"
+        )
 
         return msg

@@ -1,6 +1,4 @@
-import datetime
 import yaml
-from . import config
 
 
 class Singleton(type):

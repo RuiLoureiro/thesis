@@ -28,8 +28,7 @@ class RoadGraph:
 
     @classmethod
     def load(cls, path=config.BUS_ROAD_GRAPH_PATH):
-        """ Loads a graphtool graph
-        """
+        """Loads a graphtool graph"""
         gtG = load_graph(path)
 
         inst = cls()

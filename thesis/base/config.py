@@ -1,11 +1,16 @@
-import datetime
 from pathlib import Path
 
 home = str(Path.home())
 
-DATA_PATH = f"{home}/tese/repo/data"  # change appropriately
+REPO_PATH = Path(__file__).absolute().parents[2]
+
+DATA_PATH = f"{REPO_PATH}/data"  # change appropriately
 RAW_DATA_PATH = f"{DATA_PATH}/raw"
 PROCESSED_DATA_PATH = f"{DATA_PATH}/processed"
+
+# GTFS
+METRO_GTFS_PATH = f"{RAW_DATA_PATH}/gtfs_metro_10_2019"
+CARRIS_GTFS_PATH = f"{RAW_DATA_PATH}/gtfs_carris_02_2020"
 
 
 # BUS

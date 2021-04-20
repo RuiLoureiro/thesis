@@ -90,9 +90,11 @@ class ODX:
     """
 
     def __init__(self):
-        self.stops_distance = StopsDistance(self.stops)
         self.bus_schedule = BusSchedule()
         self.metro_schedule = MetroSchedule()
+        self.stops_distance = StopsDistance(
+            self.bus_schedule.stops + self.metro_schedule.stops
+        )
 
     @staticmethod
     def get_record_day(row):
@@ -156,7 +158,8 @@ class ODX:
 
                     stages[cid][date].append(stage)
 
-        return stages
+        print("Converting to simple dict from defaultdict..")
+        return ddict2dict(stages)
 
     def add_report(self, message, stage):
         pass
@@ -176,11 +179,11 @@ class ODX:
         # if the route is circular, every stop is subsequent to the current one
         if stage.route.route_direction == "CIRC":
             subsequent_stop_ids = (
-                route_stops[stop_number + 1 :] + route_stops[:stop_number]
+                route_stops[stop_number + 1:] + route_stops[:stop_number]
             )
 
         else:
-            subsequent_stop_ids = route_stops[stop_number + 1 :]
+            subsequent_stop_ids = route_stops[stop_number + 1:]
 
         if not subsequent_stop_ids:
             raise RuntimeError(
@@ -263,3 +266,30 @@ class ODX:
                     stage.exit_ts = stage.entry_ts + self.get_stage_time(stage)
 
         return stages
+
+
+def get_combined_afc(
+    afc_sources={
+        "bus": config.PROCESSED_BUS_AFC_PATH,
+        "metro": config.PROCESSED_METRO_AFC_PATH,
+    },
+    start_date=datetime.date(2019, 10, 7),
+    end_date=datetime.date(2019, 10, 9),
+    start_time=None,
+    end_time=None
+    # start_time=datetime.time(4,0,0),
+    # end_time = datetime.time(3,59,59)
+):
+
+    dfs = []
+    for mode, path in afc_sources.items():
+        print(f"Loading {mode} AFC from {path}")
+        dfs.append(load_afc(mode, path))
+
+    logger.info(f"Concating and sorting {len(dfs)} AFC dataframes..")
+    afc = pd.concat(dfs, ignore_index=True)
+    afc = afc.sort_values(by="timestamp", ignore_index=True)
+
+    logger.info(f"Filtering AFC for rows between {start_date} and {end_date}")
+    subset_afc = filter_df(afc, start_date, end_date, start_time, end_time)
+    return subset_afc
