@@ -44,10 +44,8 @@ def get_combined_afc(
     },
     start_date=datetime.date(2019, 10, 7),
     end_date=datetime.date(2019, 10, 9),
-    start_time=None,
-    end_time=None
-    # start_time=datetime.time(4,0,0),
-    # end_time = datetime.time(3,59,59)
+    start_time=datetime.time(0, 0, 0),
+    end_time=datetime.time(23, 59, 59)
 ):
 
     dfs = []

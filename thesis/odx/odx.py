@@ -12,8 +12,8 @@ from ..base.utils import ddict2dict
 class ODX_ENUMS:
     METRO = "metro"
     BUS = "bus"
-    METRO_OUT = "OUT"
-    METRO_IN = "IN"
+    METRO_OUT = "O"
+    METRO_IN = "I"
 
 
 class BusStage:
@@ -43,7 +43,7 @@ class BusStage:
 
         route_tup = BusRouteTuple(
             transaction.route_id,
-            transaction.route_direction,
+            transaction.direction,
             transaction.route_variant,
         )
         return BusSchedule().get_route(route_tup)
@@ -168,11 +168,11 @@ class ODX:
         route_stops = self.bus_schedule.get_route_stops(stage.route)
 
         try:
-            stop_number = route_stops.index(stage.stop.stop_id)
+            stop_number = route_stops.index(stage.entry_stop.stop_id)
 
         except ValueError:
             raise RuntimeError(
-                f"Stop {stage.stop.stop_id} not in route {stage.route}"
+                f"Stop {stage.entry_stop.stop_id} not in route {stage.route}"
             )
 
         # get stop_ids in the trip, after previous transaction's stop.
@@ -187,7 +187,7 @@ class ODX:
 
         if not subsequent_stop_ids:
             raise RuntimeError(
-                f"Boarding stop ({stage.stop.stop_id}) is route's last stop"
+                f"Boarding stop ({stage.entry_stop.stop_id}) is route's last stop"
             )
 
         # direct (same stop) transfer
@@ -197,7 +197,7 @@ class ODX:
         else:
             distances = {}
             for sid in subsequent_stop_ids:
-                distances[sid] = self.bus_schedule.get_stops_distance(
+                distances[sid] = self.bus_schedule.get_distance(
                     sid, next_stage.entry_stop.stop_id
                 )
 
@@ -205,14 +205,11 @@ class ODX:
 
         return self.bus_schedule.get_stop(closest_sid)
 
-    def get_stops_distance(self, sid1, sid2):
-        return self.stop_distances.get_distance(sid1, sid2)
-
     @staticmethod
     def is_boarding_last_stop(stage):
         return (
             stage.route.route_direction != "CIRC"
-            and stage.entry_stop.stop_id == stage.route.route_stop_ids[-1]
+            and stage.entry_stop.stop_id == stage.route.route_stops[-1]
         )
 
     @staticmethod
@@ -254,7 +251,7 @@ class ODX:
                     closest_stop = self.get_closest_stop(stage, next_stage)
 
                     if (
-                        self.get_stops_distance(
+                        self.bus_schedule.get_distance(
                             closest_stop.stop_id,
                             next_stage.entry_stop.stop_id,
                         )
