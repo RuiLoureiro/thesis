@@ -179,11 +179,11 @@ class ODX:
         # if the route is circular, every stop is subsequent to the current one
         if stage.route.route_direction == "CIRC":
             subsequent_stop_ids = (
-                route_stops[stop_number + 1:] + route_stops[:stop_number]
+                route_stops[stop_number + 1 :] + route_stops[:stop_number]
             )
 
         else:
-            subsequent_stop_ids = route_stops[stop_number + 1:]
+            subsequent_stop_ids = route_stops[stop_number + 1 :]
 
         if not subsequent_stop_ids:
             raise RuntimeError(
@@ -197,7 +197,7 @@ class ODX:
         else:
             distances = {}
             for sid in subsequent_stop_ids:
-                distances[sid] = self.bus_schedule.get_distance(
+                distances[sid] = self.get_distance(
                     sid, next_stage.entry_stop.stop_id
                 )
 
@@ -220,6 +220,9 @@ class ODX:
         )
 
         return datetime.timedelta(seconds=stage_time_sec)
+
+    def get_distance(self, sid1, sid2):
+        return self.stops_distance.get_distance(sid1, sid2)
 
     def infer_destinations(self, stages):
         for cid in tqdm(stages):
@@ -251,7 +254,7 @@ class ODX:
                     closest_stop = self.get_closest_stop(stage, next_stage)
 
                     if (
-                        self.bus_schedule.get_distance(
+                        self.get_distance(
                             closest_stop.stop_id,
                             next_stage.entry_stop.stop_id,
                         )
