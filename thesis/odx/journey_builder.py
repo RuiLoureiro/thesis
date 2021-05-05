@@ -163,12 +163,6 @@ class JourneyBuilder:
             for attr in ["entry_ts", "entry_stop", "exit_ts", "exit_stop"]
         )
 
-    def delete_day_journey(self, cid, date):
-        try:
-            del self.journeys[cid][date]
-        except KeyError:
-            pass
-
     def get_journeys(self, stages, checks=None, minimum_journey_length=True):
         ic = InterchangeChecker(checks)
 
